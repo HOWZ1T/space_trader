@@ -1,5 +1,6 @@
 package models
 
+// Models the Ship object.
 type Ship struct {
 	Class             string             `json:"class"`
 	DockingEfficiency Modifier           `json:"dockingEfficiency"`
@@ -14,6 +15,7 @@ type Ship struct {
 	PurchaseLocation  []PurchaseLocation `json:"purchaseLocations"`
 }
 
+// Models a ship that is owned by the player.
 type OwnedShip struct {
 	Cargo          []Cargo  `json:"cargo"`
 	Class          string   `json:"class"`

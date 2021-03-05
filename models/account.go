@@ -1,5 +1,6 @@
 package models
 
+// Models the Account object.
 type Account struct {
 	Credits  int             `json:"credits"`
 	Loans    []PurchasedLoan `json:"loans"`

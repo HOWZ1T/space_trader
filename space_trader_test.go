@@ -65,7 +65,7 @@ func TestAccountError(t *testing.T) {
 	(*assert.T)(t).NotNil(err)
 
 	if e, ok := err.(*errs.ApiError); ok {
-		expected := fmt.Sprintf("User %s does not exist!", uid)
+		expected := fmt.Sprintf("[404] error - User %s does not exist!", uid)
 		got := e.Error()
 		(*assert.T)(t).Equals(expected, got)
 	}
@@ -110,10 +110,8 @@ func TestBuyShip(t *testing.T) {
 	(*assert.T)(t).Nil(err)
 
 	st := New(token, username)
-	acc, err := st.BuyShip("OE-G4", "JW-MK-I")
+	_, err = st.BuyShip("OE-G4", "JW-MK-I")
 
-	(*assert.T)(t).Nil(err)
-	(*assert.T)(t).NotNil(acc)
-	fmt.Println(acc)
-	(*assert.T)(t).Equals(len(acc.Ships) > 0, true)
+	(*assert.T)(t).NotNil(err)
+	(*assert.T)(t).Equals("[400] error - User has insufficient funds to purchase ship.", err.Error())
 }

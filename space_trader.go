@@ -1,3 +1,8 @@
+// Space Traders is an API game where players explore the stars in order to exploit for it's riches.
+//
+// More info available here: https://spacetraders.io/
+//
+// This project provides a golang wrapper for the api.
 package space_trader
 
 import (
@@ -11,14 +16,31 @@ import (
 	"time"
 )
 
-const base = "https://api.spacetraders.io/"
-const game = base + "game/"
-const status = game + "status"
-const users = base + "users/"
-const loans = game + "loans"
-const ships = game + "ships"
-const systems = game + "systems/"
+// These constants represents the various api endpoints.
+const (
+	// base endpoint
+	base = "https://api.spacetraders.io/"
 
+	// game endpoint
+	game = base + "game/"
+
+	// status endpoint
+	status = game + "status"
+
+	// users endpoint
+	users = base + "users/"
+
+	// loans endpoint
+	loans = game + "loans"
+
+	// ships endpoint
+	ships = game + "ships"
+
+	// systems endpoint
+	systems = game + "systems/"
+)
+
+// SpaceTrader is a struct representing the API wrapper and provides functionality for consuming the API.
 type SpaceTrader struct {
 	token    string
 	username string
@@ -26,6 +48,7 @@ type SpaceTrader struct {
 	client http.Client
 }
 
+// Creates a new SpaceTrader instance.
 func New(token string, username string) SpaceTrader {
 	return SpaceTrader{
 		token:    token,
@@ -37,6 +60,7 @@ func New(token string, username string) SpaceTrader {
 	}
 }
 
+// Internal method for making new requests.
 func (st *SpaceTrader) newRequest(method string, uri string, body string, headers map[string]string,
 	urlParams map[string]string) (*http.Request, error) {
 	bodyReader := strings.NewReader(body)
@@ -60,6 +84,7 @@ func (st *SpaceTrader) newRequest(method string, uri string, body string, header
 	return req, nil
 }
 
+// Internal method for `do`-ing a request and attempting to unmarshal the response into the given shape.
 func (st *SpaceTrader) doRequestShaped(req *http.Request, shape interface{}) error {
 	resp, err := st.client.Do(req)
 	if err != nil {
@@ -107,6 +132,7 @@ func (st *SpaceTrader) doRequestShaped(req *http.Request, shape interface{}) err
 	return nil
 }
 
+// Gets the status of the api as a string.
 func (st *SpaceTrader) ApiStatus() (string, error) {
 	var stat map[string]string
 
@@ -123,6 +149,7 @@ func (st *SpaceTrader) ApiStatus() (string, error) {
 	return stat["status"], nil
 }
 
+// Registers a new user.
 func (st *SpaceTrader) RegisterUser(username string) (string, error) {
 	uri := users + username + "/token"
 	req, err := st.newRequest("POST", uri, "", nil, nil)
@@ -147,6 +174,7 @@ func (st *SpaceTrader) RegisterUser(username string) (string, error) {
 	return "", errs.New("unknown", "error occurred")
 }
 
+// Gets the user's account info as models.Account
 func (st *SpaceTrader) Account() (models.Account, error) {
 	uri := users + st.username
 	req, err := st.newRequest("GET", uri, "", nil, map[string]string{
@@ -166,6 +194,7 @@ func (st *SpaceTrader) Account() (models.Account, error) {
 	return raw["user"], nil
 }
 
+// Gets the available loans as []models.Loan
 func (st *SpaceTrader) AvailableLoans() ([]models.Loan, error) {
 	req, err := st.newRequest("GET", loans, "", nil, map[string]string{
 		"token": st.token,
@@ -184,6 +213,8 @@ func (st *SpaceTrader) AvailableLoans() ([]models.Loan, error) {
 	return raw["loans"], nil
 }
 
+// Takes (purchases) a loan.
+// Returns the updated models.Account
 func (st *SpaceTrader) TakeLoan(loanType string) (models.Account, error) {
 	// check loan type
 	loanType = strings.Trim(loanType, "\r\n")
@@ -223,6 +254,9 @@ func (st *SpaceTrader) TakeLoan(loanType string) (models.Account, error) {
 	return raw["user"], nil
 }
 
+// Gets the available ships as []models.Ship
+// Can filter ships by specifying class.
+// If class is specified as "" then no filter is applied.
 func (st *SpaceTrader) AvailableShips(class string) ([]models.Ship, error) {
 	urlParams := make(map[string]string)
 	urlParams["token"] = st.token
@@ -257,6 +291,8 @@ func (st *SpaceTrader) AvailableShips(class string) ([]models.Ship, error) {
 	return raw["ships"], nil
 }
 
+// Buys the specified ship.
+// Returns the updated models.Account
 func (st *SpaceTrader) BuyShip(location string, shipType string) (models.Account, error) {
 	uri := users + st.username + "/ships"
 	byts, err := json.Marshal(map[string]string{
@@ -287,6 +323,8 @@ func (st *SpaceTrader) BuyShip(location string, shipType string) (models.Account
 	return raw["user"], nil
 }
 
+// Buys the specified good at the specified quantity for the specified ship.
+// Returns models.ShipOrder
 func (st *SpaceTrader) BuyGood(shipID string, good string, quantity int) (models.ShipOrder, error) {
 	uri := users + st.username + "/purchase-orders"
 	byts, err := json.Marshal(map[string]string{
@@ -317,6 +355,8 @@ func (st *SpaceTrader) BuyGood(shipID string, good string, quantity int) (models
 	return shipOrder, nil
 }
 
+// Sells the specified good at the specified quantity for the specified ship.
+// Returns models.ShipOrder
 func (st *SpaceTrader) SellGood(shipID string, good string, quantity int) (models.ShipOrder, error) {
 	uri := users + st.username + "/sell-orders"
 	byts, err := json.Marshal(map[string]string{
@@ -347,6 +387,8 @@ func (st *SpaceTrader) SellGood(shipID string, good string, quantity int) (model
 	return shipOrder, nil
 }
 
+// Searches the system for the given type.
+// Returns []models.Location
 func (st *SpaceTrader) SearchSystem(system string, type_ string) ([]models.Location, error) {
 	uri := systems + system + "/locations"
 	urlParams := make(map[string]string)
@@ -367,6 +409,10 @@ func (st *SpaceTrader) SearchSystem(system string, type_ string) ([]models.Locat
 	return raw["locations"], nil
 }
 
+// Creates a flight plan for the ship to the destination.
+// Remember to calculate your estimated fuel usage!
+//
+// Returns models.FlightPlan
 func (st *SpaceTrader) CreateFlightPlan(shipID string, destination string) (models.FlightPlan, error) {
 	uri := users + st.username + "/flight-plans"
 	byts, err := json.Marshal(map[string]string{
@@ -396,6 +442,7 @@ func (st *SpaceTrader) CreateFlightPlan(shipID string, destination string) (mode
 	return flightPlan, nil
 }
 
+// Retrieves a models.FlightPlan by the given ID.
 func (st *SpaceTrader) GetFlightPlan(flightPlanID string) (models.FlightPlan, error) {
 	uri := users + st.username + "/flight-plans/" + flightPlanID
 
@@ -415,6 +462,8 @@ func (st *SpaceTrader) GetFlightPlan(flightPlanID string) (models.FlightPlan, er
 	return flightPlan, nil
 }
 
+// Pays the specified loan.
+// Returns the updated models.Account
 func (st *SpaceTrader) PayLoan(loanID string) (models.Account, error) {
 	uri := users + st.username + "/loans/" + loanID
 

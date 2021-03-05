@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// Models the Loan object.
 type Loan struct {
 	Type               string   `json:"type"`
 	Amount             Currency `json:"amount"`
@@ -10,6 +11,7 @@ type Loan struct {
 	TermInDays         int      `json:"termInDays"`
 }
 
+// Models a loan that has been purchased.
 type PurchasedLoan struct {
 	Due             time.Time `json:"due"`
 	ID              string    `json:"id"`

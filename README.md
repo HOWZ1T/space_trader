@@ -2,12 +2,15 @@
 # 🚀 Space Trader API 🛠️ [WIP]
 Space Traders is an API game where players explore the stars in order to exploit for it's riches.
 
-More info: [here](https://spacetraders.io/).
+More info available [here](https://spacetraders.io/).
 
 This project provides a golang wrapper for the api.
 
 ## 🛠️ Work In Progress
 Notice this package is in it's alpha stage and is subject to api changes.
+
+## 🔧 Documentation
+View Go Docs [here](https://pkg.go.dev/github.com/HOWZ1T/space_trader).
 
 ## 💾 Models
 Most of the objects have been modelled and can be accessed through the model package.
@@ -32,7 +35,8 @@ This project is licensed under [GNU General Public License v3.0](LICENSE).
 
 ## 📝 TODO
 - [ ] More Examples
+  - [x] Quick Start
 - [ ] Continuous Integration
 - [ ] Unit Tests (Reach at least 80% coverage)
-- [ ] API Documentation
-- [ ] Code Documentation
+  - Current Coverage: 49.5%
+- [x] Documentation

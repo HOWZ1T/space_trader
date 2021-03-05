@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// Models the FlightPlan object.
 type FlightPlan struct {
 	ArrivesAt              time.Time `json:"arrivesAt"`
 	Destination            string    `json:"destination"`
