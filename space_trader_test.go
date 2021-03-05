@@ -7,8 +7,6 @@ import (
 	"github.com/HOWZ1T/space_trader/models"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
-	_ "github.com/mattn/goveralls"
-	_ "golang.org/x/tools/cmd/cover"
 	"math"
 	"os"
 	"testing"
