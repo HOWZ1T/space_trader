@@ -7,10 +7,12 @@ package space_trader
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/HOWZ1T/space_trader/errs"
 	"github.com/HOWZ1T/space_trader/models"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -107,6 +109,11 @@ func (st *SpaceTrader) doRequestShaped(req *http.Request, shape interface{}) err
 	err = json.Unmarshal(body, shape)
 	if err != nil {
 		return err
+	}
+
+	l := os.Getenv("ST_LOG")
+	if l == "verbose" {
+		fmt.Printf("URI: %s\nBODY: %s\n", req.URL, string(body))
 	}
 
 	// try check for json error returned
