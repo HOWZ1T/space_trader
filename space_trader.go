@@ -2,7 +2,6 @@ package space_trader
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"space_trader/errs"
@@ -80,13 +79,11 @@ func (st *SpaceTrader) doRequestShaped(req *http.Request, shape interface{}) err
 		return err
 	}
 
-	fmt.Println(string(body))
 	err = json.Unmarshal(body, shape)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(string(body))
 	// try check for json error returned
 	var e errs.ApiError
 	err1 := json.Unmarshal(body, &e)
@@ -286,7 +283,7 @@ func (st *SpaceTrader) BuyShip(location string, shipType string) (models.Account
 	if err != nil {
 		return models.Account{}, err
 	}
-	fmt.Println(raw)
+
 	return raw["user"], nil
 }
 
