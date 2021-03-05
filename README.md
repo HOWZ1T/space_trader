@@ -25,7 +25,7 @@ To contribute follow the standard go style as much as possible and try to achiev
 Contributors will be acknowledge in this readme.
 
 ## ❤️ Contributors
-[HOWZ1T](https://github.com/) - Project Author & Maintainer
+[HOWZ1T](https://github.com/HOWZ1T/) - Project Author & Maintainer
 
 ## ⚖️ License
 This project is licensed under [GNU General Public License v3.0](LICENSE).
