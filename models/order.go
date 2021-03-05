@@ -11,6 +11,6 @@ type Order struct {
 // Models an order that has been purchased or sold by a ship.
 type ShipOrder struct {
 	Credits Currency `json:"credits"`
-	Orders  []Order
-	Ship    Ship `json:"ship"`
+	Orders  []Order  `json:"order"`
+	Ship    Ship     `json:"ship"`
 }

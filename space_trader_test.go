@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"github.com/HOWZ1T/space_trader/assert"
 	"github.com/HOWZ1T/space_trader/errs"
+	"github.com/HOWZ1T/space_trader/models"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	_ "github.com/mattn/goveralls"
+	_ "golang.org/x/tools/cmd/cover"
+	"math"
 	"os"
 	"testing"
 )
@@ -32,6 +36,51 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	teardown()
 	os.Exit(code)
+}
+
+func createUserAndTakeLoanAndBuyShip(st *SpaceTrader) (models.Account, error) {
+	// create and switch to user
+	uname := uuid.NewString()
+	token, err := st.RegisterUser(uname)
+	if err != nil {
+		return models.Account{}, err
+	}
+
+	st.SwitchUser(token, uname)
+
+	// take out loan
+	acc, err := st.TakeLoan("startup")
+	if err != nil {
+		return models.Account{}, err
+	}
+
+	ships, err := st.AvailableShips("")
+	if err != nil {
+		return models.Account{}, err
+	}
+
+	// buy cheapest ship
+	cheapestShip := struct {
+		shipType string
+		location string
+	}{}
+	min := models.Currency(math.MaxInt32)
+	for _, ship := range ships {
+		for _, ploc := range ship.PurchaseLocation {
+			if ploc.Price <= min {
+				cheapestShip.shipType = ship.Type
+				cheapestShip.location = ploc.Location
+				min = ploc.Price
+			}
+		}
+	}
+
+	acc, err = st.BuyShip(cheapestShip.location, cheapestShip.shipType)
+	if err != nil {
+		return models.Account{}, err
+	}
+
+	return acc, nil
 }
 
 func TestApiStatus(t *testing.T) {
@@ -104,7 +153,7 @@ func TestAvailableShipsFiltered(t *testing.T) {
 	(*assert.T)(t).Equals(len(ships) > 0, true)
 }
 
-func TestBuyShip(t *testing.T) {
+func TestBuyShipNoFunds(t *testing.T) {
 	username := uuid.New().String()
 	token, err := stTest.RegisterUser(username)
 	(*assert.T)(t).Nil(err)
@@ -114,4 +163,81 @@ func TestBuyShip(t *testing.T) {
 
 	(*assert.T)(t).NotNil(err)
 	(*assert.T)(t).Equals("[400] error - User has insufficient funds to purchase ship.", err.Error())
+}
+
+func TestBuyShipWithFunds(t *testing.T) {
+	st := New("", "")
+	acc, err := createUserAndTakeLoanAndBuyShip(&st)
+	(*assert.T)(t).Nil(err)
+
+	(*assert.T)(t).NotNil(acc.Ships)
+	(*assert.T)(t).NotEquals(len(acc.Ships), 0)
+	(*assert.T)(t).Equals(acc.Ships[0].Type, "JW-MK-I")
+}
+
+func TestBuyGoods(t *testing.T) {
+	st := New("", "")
+	acc, err := createUserAndTakeLoanAndBuyShip(&st)
+	(*assert.T)(t).Nil(err)
+
+	shipID := acc.Ships[0].ID
+	order, err := st.BuyGood(shipID, "FUEL", 1)
+	(*assert.T)(t).Nil(err)
+	(*assert.T)(t).NotEquals(len(order.Orders), 0)
+	(*assert.T)(t).Equals(order.Orders[0].Good, "FUEL")
+}
+
+func TestSellGoods(t *testing.T) {
+	st := New("", "")
+	acc, err := createUserAndTakeLoanAndBuyShip(&st)
+	(*assert.T)(t).Nil(err)
+
+	shipID := acc.Ships[0].ID
+	order, err := st.BuyGood(shipID, "FUEL", 1)
+	(*assert.T)(t).Nil(err)
+	(*assert.T)(t).NotEquals(len(order.Orders), 0)
+	(*assert.T)(t).Equals(order.Orders[0].Good, "FUEL")
+
+	order, err = st.SellGood(shipID, "FUEL", 1)
+	(*assert.T)(t).Nil(err)
+	(*assert.T)(t).NotEquals(len(order.Orders), 0)
+	(*assert.T)(t).Equals(order.Orders[0].Good, "FUEL")
+}
+
+func TestSearchSystem(t *testing.T) {
+	locs, err := stTest.SearchSystem("OE", "ASTEROID")
+	(*assert.T)(t).Nil(err)
+	(*assert.T)(t).NotEquals(len(locs), 0)
+	(*assert.T)(t).Equals(locs[0].Type, "ASTEROID")
+}
+
+func TestFlightPlan(t *testing.T) {
+	st := New("", "")
+	acc, err := createUserAndTakeLoanAndBuyShip(&st)
+	(*assert.T)(t).Nil(err)
+
+	shipID := acc.Ships[0].ID
+	order, err := st.BuyGood(shipID, "FUEL", 80)
+	(*assert.T)(t).Nil(err)
+	(*assert.T)(t).NotEquals(len(order.Orders)+1, 1)
+	(*assert.T)(t).Equals(order.Orders[0].Good, "FUEL")
+
+	plan, err := st.CreateFlightPlan(shipID, "OE-ZEP4")
+	(*assert.T)(t).Nil(err)
+	(*assert.T)(t).NotNil(plan)
+
+	plan2, err := st.GetFlightPlan(plan.ID)
+	(*assert.T)(t).Nil(err)
+	(*assert.T)(t).NotNil(plan2)
+	(*assert.T)(t).Equals(plan.ID, plan2.ID)
+}
+
+func TestPayLoan(t *testing.T) {
+	st := New("", "")
+	acc, err := createUserAndTakeLoanAndBuyShip(&st)
+	(*assert.T)(t).Nil(err)
+
+	_, err = st.PayLoan(acc.Loans[0].ID)
+	(*assert.T)(t).NotNil(err)
+	(*assert.T)(t).Equals("[400] error - Insufficient funds to pay for loan.", err.Error())
 }

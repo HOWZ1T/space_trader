@@ -132,7 +132,13 @@ func (st *SpaceTrader) doRequestShaped(req *http.Request, shape interface{}) err
 	return nil
 }
 
-// Gets the status of the api as a string.
+// Changes this instance of SpaceTrader to be the specified user.
+func (st *SpaceTrader) SwitchUser(token string, username string) {
+	st.token = token
+	st.username = username
+}
+
+// Retrieves the status of the api.
 func (st *SpaceTrader) ApiStatus() (string, error) {
 	var stat map[string]string
 
@@ -149,7 +155,7 @@ func (st *SpaceTrader) ApiStatus() (string, error) {
 	return stat["status"], nil
 }
 
-// Registers a new user.
+// Registers a new user and returns the new user's token.
 func (st *SpaceTrader) RegisterUser(username string) (string, error) {
 	uri := users + username + "/token"
 	req, err := st.newRequest("POST", uri, "", nil, nil)
@@ -174,7 +180,7 @@ func (st *SpaceTrader) RegisterUser(username string) (string, error) {
 	return "", errs.New("unknown", "error occurred")
 }
 
-// Gets the user's account info as models.Account
+// Retrieves the user's account info.
 func (st *SpaceTrader) Account() (models.Account, error) {
 	uri := users + st.username
 	req, err := st.newRequest("GET", uri, "", nil, map[string]string{
@@ -194,7 +200,7 @@ func (st *SpaceTrader) Account() (models.Account, error) {
 	return raw["user"], nil
 }
 
-// Gets the available loans as []models.Loan
+// Retrieves the available loans.
 func (st *SpaceTrader) AvailableLoans() ([]models.Loan, error) {
 	req, err := st.newRequest("GET", loans, "", nil, map[string]string{
 		"token": st.token,
@@ -214,7 +220,7 @@ func (st *SpaceTrader) AvailableLoans() ([]models.Loan, error) {
 }
 
 // Takes (purchases) a loan.
-// Returns the updated models.Account
+// Returns the updated Account info.
 func (st *SpaceTrader) TakeLoan(loanType string) (models.Account, error) {
 	// check loan type
 	loanType = strings.Trim(loanType, "\r\n")
@@ -254,9 +260,11 @@ func (st *SpaceTrader) TakeLoan(loanType string) (models.Account, error) {
 	return raw["user"], nil
 }
 
-// Gets the available ships as []models.Ship
-// Can filter ships by specifying class.
-// If class is specified as "" then no filter is applied.
+// Retrieves the available ships.
+//
+// Ships can be filtered by specifying class.
+//
+// If the class is specified as "" (empty) then no filter is applied.
 func (st *SpaceTrader) AvailableShips(class string) ([]models.Ship, error) {
 	urlParams := make(map[string]string)
 	urlParams["token"] = st.token
@@ -292,7 +300,7 @@ func (st *SpaceTrader) AvailableShips(class string) ([]models.Ship, error) {
 }
 
 // Buys the specified ship.
-// Returns the updated models.Account
+// Returns the updated Account info.
 func (st *SpaceTrader) BuyShip(location string, shipType string) (models.Account, error) {
 	uri := users + st.username + "/ships"
 	byts, err := json.Marshal(map[string]string{
@@ -324,7 +332,7 @@ func (st *SpaceTrader) BuyShip(location string, shipType string) (models.Account
 }
 
 // Buys the specified good at the specified quantity for the specified ship.
-// Returns models.ShipOrder
+// Returns ShipOrder
 func (st *SpaceTrader) BuyGood(shipID string, good string, quantity int) (models.ShipOrder, error) {
 	uri := users + st.username + "/purchase-orders"
 	byts, err := json.Marshal(map[string]string{
@@ -356,7 +364,7 @@ func (st *SpaceTrader) BuyGood(shipID string, good string, quantity int) (models
 }
 
 // Sells the specified good at the specified quantity for the specified ship.
-// Returns models.ShipOrder
+// Returns ShipOrder
 func (st *SpaceTrader) SellGood(shipID string, good string, quantity int) (models.ShipOrder, error) {
 	uri := users + st.username + "/sell-orders"
 	byts, err := json.Marshal(map[string]string{
@@ -388,7 +396,7 @@ func (st *SpaceTrader) SellGood(shipID string, good string, quantity int) (model
 }
 
 // Searches the system for the given type.
-// Returns []models.Location
+// Returns an array of locations.
 func (st *SpaceTrader) SearchSystem(system string, type_ string) ([]models.Location, error) {
 	uri := systems + system + "/locations"
 	urlParams := make(map[string]string)
@@ -412,7 +420,7 @@ func (st *SpaceTrader) SearchSystem(system string, type_ string) ([]models.Locat
 // Creates a flight plan for the ship to the destination.
 // Remember to calculate your estimated fuel usage!
 //
-// Returns models.FlightPlan
+// Returns FlightPlan
 func (st *SpaceTrader) CreateFlightPlan(shipID string, destination string) (models.FlightPlan, error) {
 	uri := users + st.username + "/flight-plans"
 	byts, err := json.Marshal(map[string]string{
@@ -433,16 +441,16 @@ func (st *SpaceTrader) CreateFlightPlan(shipID string, destination string) (mode
 		return models.FlightPlan{}, err
 	}
 
-	var flightPlan models.FlightPlan
-	err = st.doRequestShaped(req, &flightPlan)
+	var raw map[string]models.FlightPlan
+	err = st.doRequestShaped(req, &raw)
 	if err != nil {
 		return models.FlightPlan{}, err
 	}
 
-	return flightPlan, nil
+	return raw["flightPlan"], nil
 }
 
-// Retrieves a models.FlightPlan by the given ID.
+// Retrieves a FlightPlan by the given ID.
 func (st *SpaceTrader) GetFlightPlan(flightPlanID string) (models.FlightPlan, error) {
 	uri := users + st.username + "/flight-plans/" + flightPlanID
 
@@ -453,17 +461,17 @@ func (st *SpaceTrader) GetFlightPlan(flightPlanID string) (models.FlightPlan, er
 		return models.FlightPlan{}, err
 	}
 
-	var flightPlan models.FlightPlan
-	err = st.doRequestShaped(req, &flightPlan)
+	var raw map[string]models.FlightPlan
+	err = st.doRequestShaped(req, &raw)
 	if err != nil {
 		return models.FlightPlan{}, err
 	}
 
-	return flightPlan, nil
+	return raw["flightPlan"], nil
 }
 
 // Pays the specified loan.
-// Returns the updated models.Account
+// Returns the updated Account info.
 func (st *SpaceTrader) PayLoan(loanID string) (models.Account, error) {
 	uri := users + st.username + "/loans/" + loanID
 
