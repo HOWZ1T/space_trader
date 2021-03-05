@@ -2,11 +2,11 @@ package space_trader
 
 import (
 	"fmt"
+	"github.com/HOWZ1T/space_trader/assert"
+	"github.com/HOWZ1T/space_trader/errs"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"os"
-	"space_trader/assert"
-	"space_trader/errs"
 	"testing"
 )
 

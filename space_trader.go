@@ -2,10 +2,10 @@ package space_trader
 
 import (
 	"encoding/json"
+	"github.com/HOWZ1T/space_trader/errs"
+	"github.com/HOWZ1T/space_trader/models"
 	"io/ioutil"
 	"net/http"
-	"space_trader/errs"
-	"space_trader/models"
 	"strconv"
 	"strings"
 	"time"
