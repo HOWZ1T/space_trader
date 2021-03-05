@@ -1,7 +1,7 @@
 ![Cover Image](assets/cover.png)
 # 🚀 Space Trader API 🛠️ [WIP]
 [![Build Status](https://www.travis-ci.com/HOWZ1T/space_trader.svg?branch=master)](https://www.travis-ci.com/HOWZ1T/space_trader)
-[![Coverage Status](https://coveralls.io/repos/github/HOWZ1T/space_trader/badge.svg?branch=master)](https://coveralls.io/github/HOWZ1T/space_trader?branch=master)
+[![codecov](https://codecov.io/gh/HOWZ1T/space_trader/branch/master/graph/badge.svg?token=4L7QO7TFDX)](https://codecov.io/gh/HOWZ1T/space_trader)
 [![Go Report Card](https://goreportcard.com/badge/github.com/HOWZ1T/space_trader)](https://goreportcard.com/report/github.com/HOWZ1T/space_trader)
 
 Space Traders is an API game where players explore the stars in order to exploit for it's riches.
@@ -42,5 +42,4 @@ This project is licensed under [GNU General Public License v3.0](LICENSE).
   - [x] Quick Start
 - [x] Continuous Integration
 - [ ] Unit Tests (Reach at least 80% coverage)
-  - Current Coverage: 77.1%
 - [x] Documentation
