@@ -40,6 +40,9 @@ const (
 
 	// systems endpoint
 	systems = game + "systems/"
+
+	// locations endpoint
+	locations = game + "locations/"
 )
 
 // SpaceTrader is a struct representing the API wrapper and provides functionality for consuming the API.
@@ -218,6 +221,26 @@ func (st *SpaceTrader) AvailableLoans() ([]models.Loan, error) {
 	}
 
 	var raw map[string][]models.Loan
+	err = st.doRequestShaped(req, &raw)
+	if err != nil {
+		return nil, err
+	}
+
+	return raw["loans"], nil
+}
+
+// Retrieves the user's loans.
+func (st *SpaceTrader) MyLoans() ([]models.PurchasedLoan, error) {
+	uri := users + st.username + "/loans"
+	req, err := st.newRequest("GET", uri, "", nil, map[string]string{
+		"token": st.token,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var raw map[string][]models.PurchasedLoan
 	err = st.doRequestShaped(req, &raw)
 	if err != nil {
 		return nil, err
@@ -497,4 +520,82 @@ func (st *SpaceTrader) PayLoan(loanID string) (models.Account, error) {
 	}
 
 	return raw["user"], nil
+}
+
+// Get info for the specified location.
+// Location is specified by it's symbol.
+func (st *SpaceTrader) GetLocation(symbol string) (models.Location, error) {
+	uri := locations + symbol
+	req, err := st.newRequest("GET", uri, "", nil, map[string]string{
+		"token": st.token,
+	})
+	if err != nil {
+		return models.Location{}, err
+	}
+
+	var raw map[string]models.Location
+	err = st.doRequestShaped(req, &raw)
+	if err != nil {
+		return models.Location{}, err
+	}
+
+	return raw["planet"], nil
+}
+
+// Get all locations in the specified system.
+// System is specified by it's symbol.
+func (st *SpaceTrader) GetLocationsInSystem(symbol string) ([]models.Location, error) {
+	uri := systems + symbol + "/locations"
+	req, err := st.newRequest("GET", uri, "", nil, map[string]string{
+		"token": st.token,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var raw map[string][]models.Location
+	err = st.doRequestShaped(req, &raw)
+	if err != nil {
+		return nil, err
+	}
+
+	return raw["locations"], nil
+}
+
+// Gets the location's marketplace info.
+// Location is specified by it's symbol.
+func (st *SpaceTrader) GetMarket(symbol string) (models.Market, error) {
+	uri := locations + symbol + "/marketplace"
+	req, err := st.newRequest("GET", uri, "", nil, map[string]string{
+		"token": st.token,
+	})
+	if err != nil {
+		return models.Market{}, err
+	}
+
+	var raw map[string]models.MarketLocation
+	err = st.doRequestShaped(req, &raw)
+	if err != nil {
+		return models.Market{}, err
+	}
+
+	return raw["planet"].Market, nil
+}
+
+// Gets all the systems info.
+func (st *SpaceTrader) GetSystems() ([]models.System, error) {
+	req, err := st.newRequest("GET", systems, "", nil, map[string]string{
+		"token": st.token,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var raw map[string][]models.System
+	err = st.doRequestShaped(req, &raw)
+	if err != nil {
+		return nil, err
+	}
+
+	return raw["systems"], nil
 }

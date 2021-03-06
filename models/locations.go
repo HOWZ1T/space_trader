@@ -14,3 +14,9 @@ type Location struct {
 	X      int    `json:"x"`
 	Y      int    `json:"y"`
 }
+
+// Models a Location object that has a Market.
+type MarketLocation struct {
+	Market
+	Location
+}

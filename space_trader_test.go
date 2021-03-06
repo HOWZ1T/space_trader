@@ -124,6 +124,12 @@ func TestAvailableLoans(t *testing.T) {
 	(*assert.T)(t).Equals(loans[0].Type, "STARTUP")
 }
 
+func TestMyLoans(t *testing.T) {
+	loans, err := stTest.MyLoans()
+	(*assert.T)(t).Nil(err)
+	(*assert.T)(t).Equals(loans[0].Type, "STARTUP")
+}
+
 func TestTakeLoan(t *testing.T) {
 	username := uuid.New().String()
 	token, err := stTest.RegisterUser(username)
@@ -238,4 +244,41 @@ func TestPayLoan(t *testing.T) {
 	_, err = st.PayLoan(acc.Loans[0].ID)
 	(*assert.T)(t).NotNil(err)
 	(*assert.T)(t).Equals("[400] error - Insufficient funds to pay for loan.", err.Error())
+}
+
+func TestGetLocation(t *testing.T) {
+	loc, err := stTest.GetLocation("OE-D2")
+	(*assert.T)(t).Nil(err)
+	(*assert.T)(t).Equals(loc.Name, "Delta II")
+	(*assert.T)(t).Equals(loc.Type, "PLANET")
+}
+
+func TestGetLocationsInSystem(t *testing.T) {
+	locs, err := stTest.GetLocationsInSystem("OE")
+	(*assert.T)(t).Nil(err)
+	(*assert.T)(t).NotNil(locs)
+	(*assert.T)(t).NotEquals(len(locs), 0)
+	(*assert.T)(t).Equals(locs[0].Type, "PLANET")
+}
+
+func TestGetMarket(t *testing.T) {
+	st := New("", "")
+	acc, err := createUserAndTakeLoanAndBuyShip(&st)
+	(*assert.T)(t).Nil(err)
+
+	locSymbol := acc.Ships[0].Location
+	market, err := st.GetMarket(locSymbol)
+	(*assert.T)(t).Nil(err)
+	(*assert.T)(t).NotNil(market.Goods)
+	(*assert.T)(t).NotEquals(len(market.Goods), 0)
+	(*assert.T)(t).Equals(market.Goods[0].Symbol, "ELECTROINICS")
+}
+
+func Test_GetSystems(t *testing.T) {
+	systems, err := stTest.GetSystems()
+	(*assert.T)(t).Nil(err)
+	(*assert.T)(t).NotNil(systems)
+	(*assert.T)(t).NotEquals(len(systems), 0)
+	(*assert.T)(t).Equals(systems[0].Symbol, "OE")
+	(*assert.T)(t).Equals(systems[0].Locations[0].Type, "PLANET")
 }
