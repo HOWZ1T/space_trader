@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/HOWZ1T/space_trader/"
+	"github.com/HOWZ1T/space_trader"
 	"fmt"
 )
 
