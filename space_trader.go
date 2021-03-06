@@ -8,6 +8,7 @@ package space_trader
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/HOWZ1T/space_trader/cache"
 	"github.com/HOWZ1T/space_trader/errs"
 	"github.com/HOWZ1T/space_trader/models"
 	"io/ioutil"
@@ -51,6 +52,7 @@ type SpaceTrader struct {
 	username string
 
 	client http.Client
+	cache  cache.Cache
 }
 
 // Creates a new SpaceTrader instance.
@@ -62,6 +64,7 @@ func New(token string, username string) SpaceTrader {
 			Transport: http.DefaultTransport,
 			Timeout:   60 * time.Second,
 		},
+		cache: cache.New(time.Minute * 10),
 	}
 }
 
@@ -192,6 +195,10 @@ func (st *SpaceTrader) RegisterUser(username string) (string, error) {
 
 // Retrieves the user's account info.
 func (st *SpaceTrader) Account() (models.Account, error) {
+	if v := st.cache.Fetch("account"); v != nil {
+		return v.(models.Account), nil
+	}
+
 	uri := users + st.username
 	req, err := st.newRequest("GET", uri, "", nil, map[string]string{
 		"token": st.token,
@@ -207,11 +214,16 @@ func (st *SpaceTrader) Account() (models.Account, error) {
 		return models.Account{}, err
 	}
 
+	st.cache.Store("account", raw["user"])
 	return raw["user"], nil
 }
 
 // Retrieves the available loans.
 func (st *SpaceTrader) AvailableLoans() ([]models.Loan, error) {
+	if v := st.cache.Fetch("available_loans"); v != nil {
+		return v.([]models.Loan), nil
+	}
+
 	req, err := st.newRequest("GET", loans, "", nil, map[string]string{
 		"token": st.token,
 	})
@@ -226,11 +238,16 @@ func (st *SpaceTrader) AvailableLoans() ([]models.Loan, error) {
 		return nil, err
 	}
 
+	st.cache.Store("available_loans", raw["loans"])
 	return raw["loans"], nil
 }
 
 // Retrieves the user's loans.
 func (st *SpaceTrader) MyLoans() ([]models.PurchasedLoan, error) {
+	if v := st.cache.Fetch("my_loans"); v != nil {
+		return v.([]models.PurchasedLoan), nil
+	}
+
 	uri := users + st.username + "/loans"
 	req, err := st.newRequest("GET", uri, "", nil, map[string]string{
 		"token": st.token,
@@ -246,6 +263,7 @@ func (st *SpaceTrader) MyLoans() ([]models.PurchasedLoan, error) {
 		return nil, err
 	}
 
+	st.cache.Store("my_loans", raw["loans"])
 	return raw["loans"], nil
 }
 
@@ -287,6 +305,7 @@ func (st *SpaceTrader) TakeLoan(loanType string) (models.Account, error) {
 		return models.Account{}, err
 	}
 
+	st.cache.Store("account", raw["user"])
 	return raw["user"], nil
 }
 
@@ -296,6 +315,10 @@ func (st *SpaceTrader) TakeLoan(loanType string) (models.Account, error) {
 //
 // If the class is specified as "" (empty) then no filter is applied.
 func (st *SpaceTrader) AvailableShips(class string) ([]models.Ship, error) {
+	if v := st.cache.Fetch("available_ships"); v != nil {
+		return v.([]models.Ship), nil
+	}
+
 	urlParams := make(map[string]string)
 	urlParams["token"] = st.token
 
@@ -326,6 +349,7 @@ func (st *SpaceTrader) AvailableShips(class string) ([]models.Ship, error) {
 		return nil, err
 	}
 
+	st.cache.Store("available_ships", raw["ships"])
 	return raw["ships"], nil
 }
 
@@ -358,6 +382,7 @@ func (st *SpaceTrader) BuyShip(location string, shipType string) (models.Account
 		return models.Account{}, err
 	}
 
+	st.cache.Store("account", raw["user"])
 	return raw["user"], nil
 }
 
@@ -519,6 +544,7 @@ func (st *SpaceTrader) PayLoan(loanID string) (models.Account, error) {
 		return models.Account{}, err
 	}
 
+	st.cache.Store("account", raw["user"])
 	return raw["user"], nil
 }
 
@@ -584,6 +610,10 @@ func (st *SpaceTrader) GetMarket(symbol string) (models.Market, error) {
 
 // Gets all the systems info.
 func (st *SpaceTrader) GetSystems() ([]models.System, error) {
+	if v := st.cache.Fetch("systems"); v != nil && !st.cache.IsOld("systems") {
+		return v.([]models.System), nil
+	}
+
 	req, err := st.newRequest("GET", systems, "", nil, map[string]string{
 		"token": st.token,
 	})
@@ -597,5 +627,6 @@ func (st *SpaceTrader) GetSystems() ([]models.System, error) {
 		return nil, err
 	}
 
+	st.cache.Store("systems", raw["systems"])
 	return raw["systems"], nil
 }

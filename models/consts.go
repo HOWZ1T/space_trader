@@ -22,3 +22,22 @@ const (
 	SHIP_CLASS_II  = "MK-II"
 	SHIP_CLASS_III = "MK-III"
 )
+
+// vars for providing 'nil' struct definitions
+var (
+	NilAccount          = Account{}
+	NilCargo            = Cargo{}
+	NilFlightPlan       = FlightPlan{}
+	NilLoan             = Loan{}
+	NilPurchasedLoan    = PurchasedLoan{}
+	NilPurchaseLocation = PurchaseLocation{}
+	NilLocation         = Location{}
+	NilMarketLocation   = MarketLocation{}
+	NilGood             = Good{}
+	NilMarket           = Market{}
+	NilOrder            = Order{}
+	NilShipOrder        = ShipOrder{}
+	NilShip             = Ship{}
+	NilOwnedShip        = OwnedShip{}
+	NilSystem           = System{}
+)

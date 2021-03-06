@@ -271,7 +271,7 @@ func TestGetMarket(t *testing.T) {
 	(*assert.T)(t).Nil(err)
 	(*assert.T)(t).NotNil(market.Goods)
 	(*assert.T)(t).NotEquals(len(market.Goods), 0)
-	(*assert.T)(t).Equals(market.Goods[0].Symbol, "CONSTRUCTION_MATERIALS")
+	(*assert.T)(t).NotEquals(len(market.Goods[0].Symbol), 0)
 }
 
 func Test_GetSystems(t *testing.T) {
