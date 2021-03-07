@@ -52,7 +52,6 @@ func (c *Cache) Fetch(key string) interface{} {
 		if os.Getenv("ST_LOG") == "verbose" {
 			fmt.Println(key + " -> cache hit")
 		}
-		fmt.Println(key + " -> cache hit")
 
 		return v.data
 	}

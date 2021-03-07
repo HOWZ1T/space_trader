@@ -7,13 +7,11 @@ package space_trader
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/HOWZ1T/space_trader/cache"
 	"github.com/HOWZ1T/space_trader/errs"
 	"github.com/HOWZ1T/space_trader/models"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -99,6 +97,10 @@ func (st *SpaceTrader) doRequestShaped(req *http.Request, shape interface{}) err
 		return err
 	}
 
+	if resp.StatusCode == 429 {
+		return errs.New2("Rate Limit Exceeded", "Too Many Requests", 429)
+	}
+
 	// safely defer close
 	defer func() {
 		err := resp.Body.Close()
@@ -115,11 +117,6 @@ func (st *SpaceTrader) doRequestShaped(req *http.Request, shape interface{}) err
 	err = json.Unmarshal(body, shape)
 	if err != nil {
 		return err
-	}
-
-	l := os.Getenv("ST_LOG")
-	if l == "verbose" {
-		fmt.Printf("URI: %s\nBODY: %s\n", req.URL, string(body))
 	}
 
 	// try check for json error returned
@@ -145,6 +142,37 @@ func (st *SpaceTrader) doRequestShaped(req *http.Request, shape interface{}) err
 	return nil
 }
 
+func (st *SpaceTrader) doShapedRateLimited(method string, uri string, body string, headers map[string]string,
+	urlParams map[string]string, shape interface{}, maxWait float32, wait float32, retries int) error {
+	req, err := st.newRequest(method, uri, body, headers, urlParams)
+	if err != nil {
+		return err
+	}
+
+	err = st.doRequestShaped(req, &shape)
+	if err != nil {
+		if e, ok := err.(*errs.ApiError); ok {
+			if e.Code == 429 {
+				// wait
+				if retries > 0 && wait <= maxWait {
+					time.Sleep(time.Duration(wait) * time.Second)
+					wait = wait * 2.5
+					retries--
+					return st.doShapedRateLimited(method, uri, body, headers, urlParams, shape, maxWait, wait, retries)
+				}
+			}
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (st *SpaceTrader) doShaped(method string, uri string, body string, headers map[string]string,
+	urlParams map[string]string, shape interface{}) error {
+	return st.doShapedRateLimited(method, uri, body, headers, urlParams, shape, 40, 1, 4)
+}
+
 // Changes this instance of SpaceTrader to be the specified user.
 func (st *SpaceTrader) SwitchUser(token string, username string) {
 	st.token = token
@@ -155,12 +183,7 @@ func (st *SpaceTrader) SwitchUser(token string, username string) {
 func (st *SpaceTrader) ApiStatus() (string, error) {
 	var stat map[string]string
 
-	req, err := st.newRequest("GET", status, "", nil, nil)
-	if err != nil {
-		return "", err
-	}
-
-	err = st.doRequestShaped(req, &stat)
+	err := st.doShaped("GET", status, "", nil, nil, &stat)
 	if err != nil {
 		return "", err
 	}
@@ -171,17 +194,13 @@ func (st *SpaceTrader) ApiStatus() (string, error) {
 // Registers a new user and returns the new user's token.
 func (st *SpaceTrader) RegisterUser(username string) (string, error) {
 	uri := users + username + "/token"
-	req, err := st.newRequest("POST", uri, "", nil, nil)
-	if err != nil {
-		return "", err
-	}
 
 	var raw map[string]interface{}
-	err = st.doRequestShaped(req, &raw)
+	err := st.doShaped("POST", uri, "", nil, nil, &raw)
 	if err != nil {
-		if strings.Contains(err.Error(), "invalid character") {
+		/*if strings.Contains(err.Error(), "invalid character") {
 			return "", errs.New("username error", "username already taken")
-		}
+		}*/
 		return "", err
 	}
 
@@ -200,16 +219,10 @@ func (st *SpaceTrader) Account() (models.Account, error) {
 	}
 
 	uri := users + st.username
-	req, err := st.newRequest("GET", uri, "", nil, map[string]string{
-		"token": st.token,
-	})
-
-	if err != nil {
-		return models.Account{}, err
-	}
-
 	var raw map[string]models.Account
-	err = st.doRequestShaped(req, &raw)
+	err := st.doShaped("GET", uri, "", nil, map[string]string{
+		"token": st.token,
+	}, &raw)
 	if err != nil {
 		return models.Account{}, err
 	}
@@ -224,16 +237,10 @@ func (st *SpaceTrader) AvailableLoans() ([]models.Loan, error) {
 		return v.([]models.Loan), nil
 	}
 
-	req, err := st.newRequest("GET", loans, "", nil, map[string]string{
-		"token": st.token,
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
 	var raw map[string][]models.Loan
-	err = st.doRequestShaped(req, &raw)
+	err := st.doShaped("GET", loans, "", nil, map[string]string{
+		"token": st.token,
+	}, &raw)
 	if err != nil {
 		return nil, err
 	}
@@ -249,16 +256,11 @@ func (st *SpaceTrader) MyLoans() ([]models.PurchasedLoan, error) {
 	}
 
 	uri := users + st.username + "/loans"
-	req, err := st.newRequest("GET", uri, "", nil, map[string]string{
-		"token": st.token,
-	})
-
-	if err != nil {
-		return nil, err
-	}
 
 	var raw map[string][]models.PurchasedLoan
-	err = st.doRequestShaped(req, &raw)
+	err := st.doShaped("GET", uri, "", nil, map[string]string{
+		"token": st.token,
+	}, &raw)
 	if err != nil {
 		return nil, err
 	}
@@ -289,18 +291,12 @@ func (st *SpaceTrader) TakeLoan(loanType string) (models.Account, error) {
 		return models.Account{}, err
 	}
 
-	req, err := st.newRequest("POST", uri, string(byts), map[string]string{
+	var raw map[string]models.Account
+	err = st.doShaped("POST", uri, string(byts), map[string]string{
 		"Content-Type": "application/json",
 	}, map[string]string{
 		"token": st.token,
-	})
-
-	if err != nil {
-		return models.Account{}, err
-	}
-
-	var raw map[string]models.Account
-	err = st.doRequestShaped(req, &raw)
+	}, &raw)
 	if err != nil {
 		return models.Account{}, err
 	}
@@ -316,7 +312,30 @@ func (st *SpaceTrader) TakeLoan(loanType string) (models.Account, error) {
 // If the class is specified as "" (empty) then no filter is applied.
 func (st *SpaceTrader) AvailableShips(class string) ([]models.Ship, error) {
 	if v := st.cache.Fetch("available_ships"); v != nil {
-		return v.([]models.Ship), nil
+		if class == "" {
+			return v.([]models.Ship), nil
+		}
+
+		class = strings.Trim(class, "\r\n")
+		class = strings.ToUpper(class)
+		switch class {
+		case "MK-III":
+		case "MK-II":
+		case "MK-I":
+			break
+
+		default:
+			return nil, errs.New("invalid argument", "invalid class: "+class)
+		}
+
+		ships := make([]models.Ship, 0)
+		for _, ship := range v.([]models.Ship) {
+			if strings.ToUpper(ship.Class) == class {
+				ships = append(ships, ship)
+			}
+		}
+
+		return ships, nil
 	}
 
 	urlParams := make(map[string]string)
@@ -337,14 +356,8 @@ func (st *SpaceTrader) AvailableShips(class string) ([]models.Ship, error) {
 		urlParams["class"] = class
 	}
 
-	req, err := st.newRequest("GET", ships, "", nil, urlParams)
-
-	if err != nil {
-		return nil, err
-	}
-
 	var raw map[string][]models.Ship
-	err = st.doRequestShaped(req, &raw)
+	err := st.doShaped("GET", ships, "", nil, urlParams, &raw)
 	if err != nil {
 		return nil, err
 	}
@@ -366,18 +379,13 @@ func (st *SpaceTrader) BuyShip(location string, shipType string) (models.Account
 		return models.Account{}, err
 	}
 
-	req, err := st.newRequest("POST", uri, string(byts), map[string]string{
+	var raw map[string]models.Account
+	err = st.doShaped("POST", uri, string(byts), map[string]string{
 		"Content-Type": "application/json",
 		"Accept":       "application/json",
 	}, map[string]string{
 		"token": st.token,
-	})
-	if err != nil {
-		return models.Account{}, err
-	}
-
-	var raw map[string]models.Account
-	err = st.doRequestShaped(req, &raw)
+	}, &raw)
 	if err != nil {
 		return models.Account{}, err
 	}
@@ -400,17 +408,12 @@ func (st *SpaceTrader) BuyGood(shipID string, good string, quantity int) (models
 		return models.ShipOrder{}, err
 	}
 
-	req, err := st.newRequest("POST", uri, string(byts), map[string]string{
+	var shipOrder models.ShipOrder
+	err = st.doShaped("POST", uri, string(byts), map[string]string{
 		"Content-Type": "application/json",
 	}, map[string]string{
 		"token": st.token,
-	})
-	if err != nil {
-		return models.ShipOrder{}, err
-	}
-
-	var shipOrder models.ShipOrder
-	err = st.doRequestShaped(req, &shipOrder)
+	}, &shipOrder)
 	if err != nil {
 		return models.ShipOrder{}, err
 	}
@@ -432,17 +435,12 @@ func (st *SpaceTrader) SellGood(shipID string, good string, quantity int) (model
 		return models.ShipOrder{}, err
 	}
 
-	req, err := st.newRequest("POST", uri, string(byts), map[string]string{
+	var shipOrder models.ShipOrder
+	err = st.doShaped("POST", uri, string(byts), map[string]string{
 		"Content-Type": "application/json",
 	}, map[string]string{
 		"token": st.token,
-	})
-	if err != nil {
-		return models.ShipOrder{}, err
-	}
-
-	var shipOrder models.ShipOrder
-	err = st.doRequestShaped(req, &shipOrder)
+	}, &shipOrder)
 	if err != nil {
 		return models.ShipOrder{}, err
 	}
@@ -458,13 +456,8 @@ func (st *SpaceTrader) SearchSystem(system string, type_ string) ([]models.Locat
 	urlParams["token"] = st.token
 	urlParams["type"] = type_
 
-	req, err := st.newRequest("GET", uri, "", nil, urlParams)
-	if err != nil {
-		return nil, err
-	}
-
 	var raw map[string][]models.Location
-	err = st.doRequestShaped(req, &raw)
+	err := st.doShaped("GET", uri, "", nil, urlParams, &raw)
 	if err != nil {
 		return nil, err
 	}
@@ -482,22 +475,16 @@ func (st *SpaceTrader) CreateFlightPlan(shipID string, destination string) (mode
 		"shipId":      shipID,
 		"destination": destination,
 	})
-
-	if err != nil {
-		return models.FlightPlan{}, err
-	}
-
-	req, err := st.newRequest("POST", uri, string(byts), map[string]string{
-		"Content-Type": "application/json",
-	}, map[string]string{
-		"token": st.token,
-	})
 	if err != nil {
 		return models.FlightPlan{}, err
 	}
 
 	var raw map[string]models.FlightPlan
-	err = st.doRequestShaped(req, &raw)
+	err = st.doShaped("POST", uri, string(byts), map[string]string{
+		"Content-Type": "application/json",
+	}, map[string]string{
+		"token": st.token,
+	}, &raw)
 	if err != nil {
 		return models.FlightPlan{}, err
 	}
@@ -509,15 +496,10 @@ func (st *SpaceTrader) CreateFlightPlan(shipID string, destination string) (mode
 func (st *SpaceTrader) GetFlightPlan(flightPlanID string) (models.FlightPlan, error) {
 	uri := users + st.username + "/flight-plans/" + flightPlanID
 
-	req, err := st.newRequest("GET", uri, "", nil, map[string]string{
-		"token": st.token,
-	})
-	if err != nil {
-		return models.FlightPlan{}, err
-	}
-
 	var raw map[string]models.FlightPlan
-	err = st.doRequestShaped(req, &raw)
+	err := st.doShaped("GET", uri, "", nil, map[string]string{
+		"token": st.token,
+	}, &raw)
 	if err != nil {
 		return models.FlightPlan{}, err
 	}
@@ -530,16 +512,10 @@ func (st *SpaceTrader) GetFlightPlan(flightPlanID string) (models.FlightPlan, er
 func (st *SpaceTrader) PayLoan(loanID string) (models.Account, error) {
 	uri := users + st.username + "/loans/" + loanID
 
-	req, err := st.newRequest("PUT", uri, "", nil, map[string]string{
-		"token": st.token,
-	})
-
-	if err != nil {
-		return models.Account{}, err
-	}
-
 	var raw map[string]models.Account
-	err = st.doRequestShaped(req, &raw)
+	err := st.doShaped("PUT", uri, "", nil, map[string]string{
+		"token": st.token,
+	}, &raw)
 	if err != nil {
 		return models.Account{}, err
 	}
@@ -552,15 +528,11 @@ func (st *SpaceTrader) PayLoan(loanID string) (models.Account, error) {
 // Location is specified by it's symbol.
 func (st *SpaceTrader) GetLocation(symbol string) (models.Location, error) {
 	uri := locations + symbol
-	req, err := st.newRequest("GET", uri, "", nil, map[string]string{
-		"token": st.token,
-	})
-	if err != nil {
-		return models.Location{}, err
-	}
 
 	var raw map[string]models.Location
-	err = st.doRequestShaped(req, &raw)
+	err := st.doShaped("GET", uri, "", nil, map[string]string{
+		"token": st.token,
+	}, &raw)
 	if err != nil {
 		return models.Location{}, err
 	}
@@ -572,15 +544,11 @@ func (st *SpaceTrader) GetLocation(symbol string) (models.Location, error) {
 // System is specified by it's symbol.
 func (st *SpaceTrader) GetLocationsInSystem(symbol string) ([]models.Location, error) {
 	uri := systems + symbol + "/locations"
-	req, err := st.newRequest("GET", uri, "", nil, map[string]string{
-		"token": st.token,
-	})
-	if err != nil {
-		return nil, err
-	}
 
 	var raw map[string][]models.Location
-	err = st.doRequestShaped(req, &raw)
+	err := st.doShaped("GET", uri, "", nil, map[string]string{
+		"token": st.token,
+	}, &raw)
 	if err != nil {
 		return nil, err
 	}
@@ -592,15 +560,11 @@ func (st *SpaceTrader) GetLocationsInSystem(symbol string) ([]models.Location, e
 // Location is specified by it's symbol.
 func (st *SpaceTrader) GetMarket(symbol string) (models.Market, error) {
 	uri := locations + symbol + "/marketplace"
-	req, err := st.newRequest("GET", uri, "", nil, map[string]string{
-		"token": st.token,
-	})
-	if err != nil {
-		return models.Market{}, err
-	}
 
 	var raw map[string]models.MarketLocation
-	err = st.doRequestShaped(req, &raw)
+	err := st.doShaped("GET", uri, "", nil, map[string]string{
+		"token": st.token,
+	}, &raw)
 	if err != nil {
 		return models.Market{}, err
 	}
@@ -614,15 +578,10 @@ func (st *SpaceTrader) GetSystems() ([]models.System, error) {
 		return v.([]models.System), nil
 	}
 
-	req, err := st.newRequest("GET", systems, "", nil, map[string]string{
-		"token": st.token,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	var raw map[string][]models.System
-	err = st.doRequestShaped(req, &raw)
+	err := st.doShaped("GET", systems, "", nil, map[string]string{
+		"token": st.token,
+	}, &raw)
 	if err != nil {
 		return nil, err
 	}

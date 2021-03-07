@@ -22,9 +22,15 @@ func setup() {
 		panic(err)
 	}
 
+	err = os.Setenv("ST_LOG", "verbose")
+	if err != nil {
+		panic(err)
+	}
+
 	username = os.Getenv("ST_USERNAME")
 	token = os.Getenv("ST_TOKEN")
 	stTest = New(token, username)
+
 }
 
 func teardown() {}
@@ -38,7 +44,12 @@ func TestMain(m *testing.M) {
 
 func createUserAndTakeLoanAndBuyShip(st *SpaceTrader) (models.Account, error) {
 	// create and switch to user
-	uname := uuid.NewString()
+	uid, err := uuid.NewUUID()
+	if err != nil {
+		return models.Account{}, err
+	}
+
+	uname := uid.String()
 	token, err := st.RegisterUser(uname)
 	if err != nil {
 		return models.Account{}, err
@@ -155,6 +166,10 @@ func TestAvailableShipsFiltered(t *testing.T) {
 	(*assert.T)(t).Nil(err)
 	(*assert.T)(t).NotNil(ships)
 	(*assert.T)(t).Equals(len(ships) > 0, true)
+
+	for _, ship := range ships {
+		(*assert.T)(t).Equals(ship.Class, "MK-II")
+	}
 }
 
 func TestBuyShipNoFunds(t *testing.T) {

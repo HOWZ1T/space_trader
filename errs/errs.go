@@ -23,6 +23,15 @@ func New(err string, msg string) *ApiError {
 	}
 }
 
+// Creates a new ApiError
+func New2(err string, msg string, code int) *ApiError {
+	return &ApiError{
+		Err:  err,
+		Msg:  msg,
+		Code: code,
+	}
+}
+
 // implements the error interface for ApiError
 func (e *ApiError) Error() string {
 	s := ""
