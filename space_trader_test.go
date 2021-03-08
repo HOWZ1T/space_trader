@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/HOWZ1T/space_trader/assert"
 	"github.com/HOWZ1T/space_trader/errs"
+	"github.com/HOWZ1T/space_trader/events"
 	"github.com/HOWZ1T/space_trader/models"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
@@ -14,7 +15,7 @@ import (
 
 var username = ""
 var token = ""
-var stTest SpaceTrader
+var stTest *SpaceTrader
 
 func setup() {
 	err := godotenv.Load(".test_env")
@@ -108,6 +109,22 @@ func TestRegisterUser(t *testing.T) {
 	if len(s) <= 0 {
 		t.Errorf("expected token, got: %s", s)
 	}
+
+	// test event
+	select {
+	case evt := <-stTest.EventsChannel():
+		if e, ok := evt.(*events.UserRegistered); ok {
+			(*assert.T)(t).Equals(e.Token, s)
+			(*assert.T)(t).Equals(e.Username, username)
+		} else {
+			(*assert.T)(t).Errorf("event is not of the proper type")
+		}
+		break
+
+	default:
+		(*assert.T)(t).Errorf("event is not of the proper type")
+		break
+	}
 }
 
 func TestAccount(t *testing.T) {
@@ -152,6 +169,22 @@ func TestTakeLoan(t *testing.T) {
 	(*assert.T)(t).Nil(err)
 	(*assert.T)(t).NotNil(acc)
 	(*assert.T)(t).Equals(len(acc.Loans) > 0, true)
+
+	// test event
+	select {
+	case evt := <-st.EventsChannel():
+		if e, ok := evt.(*events.Loan); ok {
+			(*assert.T)(t).Equals(len(e.Account.Loans) > 0, true)
+			(*assert.T)(t).Equals(e.Type, "PURCHASED")
+		} else {
+			(*assert.T)(t).Errorf("event is not of the proper type")
+		}
+		break
+
+	default:
+		(*assert.T)(t).Errorf("event is not of the proper type")
+		break
+	}
 }
 
 func TestAvailableShips(t *testing.T) {
@@ -178,7 +211,7 @@ func TestBuyShipNoFunds(t *testing.T) {
 	(*assert.T)(t).Nil(err)
 
 	st := New(token, username)
-	_, err = st.BuyShip("OE-G4", "JW-MK-I")
+	_, err = st.BuyShip("OE-PM-TR", "JW-MK-I")
 
 	(*assert.T)(t).NotNil(err)
 	(*assert.T)(t).Equals("[400] error - User has insufficient funds to purchase ship.", err.Error())
@@ -186,17 +219,36 @@ func TestBuyShipNoFunds(t *testing.T) {
 
 func TestBuyShipWithFunds(t *testing.T) {
 	st := New("", "")
-	acc, err := createUserAndTakeLoanAndBuyShip(&st)
+	acc, err := createUserAndTakeLoanAndBuyShip(st)
 	(*assert.T)(t).Nil(err)
 
 	(*assert.T)(t).NotNil(acc.Ships)
 	(*assert.T)(t).NotEquals(len(acc.Ships), 0)
 	(*assert.T)(t).Equals(acc.Ships[0].Type, "JW-MK-I")
+
+	// test event
+	// clear register, user switch, & loan events
+	_ = <-st.EventsChannel()
+	_ = <-st.EventsChannel()
+	_ = <-st.EventsChannel()
+	select {
+	case evt := <-st.EventsChannel():
+		if e, ok := evt.(*events.ShipPurchased); ok {
+			(*assert.T)(t).Equals(e.Account.Ships[0].Type, "JW-MK-I")
+		} else {
+			(*assert.T)(t).Errorf("event is not of the proper type")
+		}
+		break
+
+	default:
+		(*assert.T)(t).Errorf("event is not of the proper type")
+		break
+	}
 }
 
 func TestBuyGoods(t *testing.T) {
 	st := New("", "")
-	acc, err := createUserAndTakeLoanAndBuyShip(&st)
+	acc, err := createUserAndTakeLoanAndBuyShip(st)
 	(*assert.T)(t).Nil(err)
 
 	shipID := acc.Ships[0].ID
@@ -204,11 +256,32 @@ func TestBuyGoods(t *testing.T) {
 	(*assert.T)(t).Nil(err)
 	(*assert.T)(t).NotEquals(len(order.Orders), 0)
 	(*assert.T)(t).Equals(order.Orders[0].Good, "FUEL")
+
+	// test event
+	// clear register, user switch, loan & ship purchased events
+	_ = <-st.EventsChannel()
+	_ = <-st.EventsChannel()
+	_ = <-st.EventsChannel()
+	_ = <-st.EventsChannel()
+	select {
+	case evt := <-st.EventsChannel():
+		if e, ok := evt.(*events.ShipOrder); ok {
+			(*assert.T)(t).Equals(e.Type, "BUY")
+			(*assert.T)(t).Equals(e.Order.Orders[0].Good, "FUEL")
+		} else {
+			(*assert.T)(t).Errorf("event is not of the proper type")
+		}
+		break
+
+	default:
+		(*assert.T)(t).Errorf("event is not of the proper type")
+		break
+	}
 }
 
 func TestSellGoods(t *testing.T) {
 	st := New("", "")
-	acc, err := createUserAndTakeLoanAndBuyShip(&st)
+	acc, err := createUserAndTakeLoanAndBuyShip(st)
 	(*assert.T)(t).Nil(err)
 
 	shipID := acc.Ships[0].ID
@@ -221,6 +294,28 @@ func TestSellGoods(t *testing.T) {
 	(*assert.T)(t).Nil(err)
 	(*assert.T)(t).NotEquals(len(order.Orders), 0)
 	(*assert.T)(t).Equals(order.Orders[0].Good, "FUEL")
+
+	// test event
+	// clear register, user switch, loan, ship purchased, & buy good events
+	_ = <-st.EventsChannel()
+	_ = <-st.EventsChannel()
+	_ = <-st.EventsChannel()
+	_ = <-st.EventsChannel()
+	_ = <-st.EventsChannel()
+	select {
+	case evt := <-st.EventsChannel():
+		if e, ok := evt.(*events.ShipOrder); ok {
+			(*assert.T)(t).Equals(e.Type, "SELL")
+			(*assert.T)(t).Equals(e.Order.Orders[0].Good, "FUEL")
+		} else {
+			(*assert.T)(t).Errorf("event is not of the proper type")
+		}
+		break
+
+	default:
+		(*assert.T)(t).Errorf("event is not of the proper type")
+		break
+	}
 }
 
 func TestSearchSystem(t *testing.T) {
@@ -232,7 +327,7 @@ func TestSearchSystem(t *testing.T) {
 
 func TestFlightPlan(t *testing.T) {
 	st := New("", "")
-	acc, err := createUserAndTakeLoanAndBuyShip(&st)
+	acc, err := createUserAndTakeLoanAndBuyShip(st)
 	(*assert.T)(t).Nil(err)
 
 	shipID := acc.Ships[0].ID
@@ -241,7 +336,7 @@ func TestFlightPlan(t *testing.T) {
 	(*assert.T)(t).NotEquals(len(order.Orders)+1, 1)
 	(*assert.T)(t).Equals(order.Orders[0].Good, "FUEL")
 
-	plan, err := st.CreateFlightPlan(shipID, "OE-ZEP4")
+	plan, err := st.CreateFlightPlan(shipID, "OE-CR")
 	(*assert.T)(t).Nil(err)
 	(*assert.T)(t).NotNil(plan)
 
@@ -249,11 +344,35 @@ func TestFlightPlan(t *testing.T) {
 	(*assert.T)(t).Nil(err)
 	(*assert.T)(t).NotNil(plan2)
 	(*assert.T)(t).Equals(plan.ID, plan2.ID)
+
+	(*assert.T)(t).Equals(st.flightPlans[plan.ID].Destination, plan.Destination)
+
+	// test event
+	// clear register, user switch, loan, ship purchased, & buy good events
+	_ = <-st.EventsChannel()
+	_ = <-st.EventsChannel()
+	_ = <-st.EventsChannel()
+	_ = <-st.EventsChannel()
+	_ = <-st.EventsChannel()
+	select {
+	case evt := <-st.EventsChannel():
+		if e, ok := evt.(*events.FlightPlan); ok {
+			(*assert.T)(t).Equals(e.Type, "CREATED")
+			(*assert.T)(t).Equals(e.Plan.ID, plan.ID)
+		} else {
+			(*assert.T)(t).Errorf("event is not of the proper type")
+		}
+		break
+
+	default:
+		(*assert.T)(t).Errorf("event is not of the proper type")
+		break
+	}
 }
 
 func TestPayLoan(t *testing.T) {
 	st := New("", "")
-	acc, err := createUserAndTakeLoanAndBuyShip(&st)
+	acc, err := createUserAndTakeLoanAndBuyShip(st)
 	(*assert.T)(t).Nil(err)
 
 	_, err = st.PayLoan(acc.Loans[0].ID)
@@ -262,9 +381,9 @@ func TestPayLoan(t *testing.T) {
 }
 
 func TestGetLocation(t *testing.T) {
-	loc, err := stTest.GetLocation("OE-D2")
+	loc, err := stTest.GetLocation("OE-CR")
 	(*assert.T)(t).Nil(err)
-	(*assert.T)(t).Equals(loc.Name, "Delta II")
+	(*assert.T)(t).Equals(loc.Name, "Carth")
 	(*assert.T)(t).Equals(loc.Type, "PLANET")
 }
 
@@ -278,7 +397,7 @@ func TestGetLocationsInSystem(t *testing.T) {
 
 func TestGetMarket(t *testing.T) {
 	st := New("", "")
-	acc, err := createUserAndTakeLoanAndBuyShip(&st)
+	acc, err := createUserAndTakeLoanAndBuyShip(st)
 	(*assert.T)(t).Nil(err)
 
 	locSymbol := acc.Ships[0].Location
@@ -296,4 +415,31 @@ func Test_GetSystems(t *testing.T) {
 	(*assert.T)(t).NotEquals(len(systems), 0)
 	(*assert.T)(t).Equals(systems[0].Symbol, "OE")
 	(*assert.T)(t).Equals(systems[0].Locations[0].Type, "PLANET")
+}
+
+func Test_SwitchUser(t *testing.T) {
+	st := New("a", "b")
+	(*assert.T)(t).Equals(st.token, "a")
+	(*assert.T)(t).Equals(st.username, "b")
+
+	st.SwitchUser("c", "d")
+
+	(*assert.T)(t).Equals(st.token, "c")
+	(*assert.T)(t).Equals(st.username, "d")
+
+	// test event
+	select {
+	case evt := <-st.EventsChannel():
+		if e, ok := evt.(*events.UserSwitched); ok {
+			(*assert.T)(t).Equals(e.Token, "c")
+			(*assert.T)(t).Equals(e.Username, "d")
+		} else {
+			(*assert.T)(t).Errorf("event is not of the proper type")
+		}
+		break
+
+	default:
+		(*assert.T)(t).Errorf("event is not of the proper type")
+		break
+	}
 }

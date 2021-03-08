@@ -3,8 +3,7 @@ package models
 // Provides useful constants ('enums') for the project.
 // Const structure OBJECT_ENUM, e.g.: LOAN_STARTUP
 const (
-	LOAN_STARTUP    = "STARTUP"
-	LOAN_ENTERPRISE = "ENTERPRISE"
+	LOAN_STARTUP = "STARTUP"
 
 	LOC_PLANET    = "PLANET"
 	LOC_MOON      = "MOON"
@@ -29,7 +28,6 @@ var (
 	NilCargo            = Cargo{}
 	NilFlightPlan       = FlightPlan{}
 	NilLoan             = Loan{}
-	NilPurchasedLoan    = PurchasedLoan{}
 	NilPurchaseLocation = PurchaseLocation{}
 	NilLocation         = Location{}
 	NilMarketLocation   = MarketLocation{}
@@ -38,6 +36,5 @@ var (
 	NilOrder            = Order{}
 	NilShipOrder        = ShipOrder{}
 	NilShip             = Ship{}
-	NilOwnedShip        = OwnedShip{}
 	NilSystem           = System{}
 )

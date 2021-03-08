@@ -9,11 +9,13 @@ import (
 	"encoding/json"
 	"github.com/HOWZ1T/space_trader/cache"
 	"github.com/HOWZ1T/space_trader/errs"
+	"github.com/HOWZ1T/space_trader/events"
 	"github.com/HOWZ1T/space_trader/models"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -46,23 +48,58 @@ const (
 
 // SpaceTrader is a struct representing the API wrapper and provides functionality for consuming the API.
 type SpaceTrader struct {
+	mu       sync.Mutex
 	token    string
 	username string
 
-	client http.Client
-	cache  cache.Cache
+	client       http.Client
+	cache        cache.Cache
+	eventManager events.EventManager
+
+	flightPlans map[string]models.FlightPlan
 }
 
 // Creates a new SpaceTrader instance.
-func New(token string, username string) SpaceTrader {
-	return SpaceTrader{
+func New(token string, username string) *SpaceTrader {
+	st := SpaceTrader{
+		mu:       sync.Mutex{},
 		token:    token,
 		username: username,
 		client: http.Client{
 			Transport: http.DefaultTransport,
 			Timeout:   60 * time.Second,
 		},
-		cache: cache.New(time.Minute * 10),
+		cache:        cache.New(time.Minute * 10),
+		eventManager: events.NewManager(),
+		flightPlans:  make(map[string]models.FlightPlan),
+	}
+	go st.tick()
+	return &st
+}
+
+func (st *SpaceTrader) tick() {
+	for {
+		// check flight plans
+		if len(st.flightPlans) > 0 {
+			now := time.Now()
+			st.mu.Lock()
+			for k, v := range st.flightPlans {
+				if now.After(v.ArrivesAt) || now.Equal(v.ArrivesAt) {
+					f, err := st.GetFlightPlan(v.ID)
+					if err != nil {
+						panic(err)
+					}
+
+					// remove flight plan from internal map
+					delete(st.flightPlans, k)
+
+					// emit event
+					st.eventManager.Emit(events.FlightPlan{}.New("ENDED", f))
+				}
+			}
+			st.mu.Unlock()
+		}
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -173,8 +210,14 @@ func (st *SpaceTrader) doShaped(method string, uri string, body string, headers 
 	return st.doShapedRateLimited(method, uri, body, headers, urlParams, shape, 40, 1, 4)
 }
 
+func (st *SpaceTrader) EventsChannel() chan events.Event {
+	return st.eventManager.EventChannel
+}
+
 // Changes this instance of SpaceTrader to be the specified user.
 func (st *SpaceTrader) SwitchUser(token string, username string) {
+	event := events.UserSwitched{}.New(username, token)
+	st.eventManager.Emit(event)
 	st.token = token
 	st.username = username
 }
@@ -206,6 +249,7 @@ func (st *SpaceTrader) RegisterUser(username string) (string, error) {
 
 	// return token
 	if val, ok := raw["token"]; ok {
+		st.eventManager.Emit(events.UserRegistered{}.New(username, raw["token"]))
 		return val.(string), nil
 	}
 
@@ -250,14 +294,14 @@ func (st *SpaceTrader) AvailableLoans() ([]models.Loan, error) {
 }
 
 // Retrieves the user's loans.
-func (st *SpaceTrader) MyLoans() ([]models.PurchasedLoan, error) {
-	if v := st.cache.Fetch("my_loans"); v != nil {
-		return v.([]models.PurchasedLoan), nil
+func (st *SpaceTrader) MyLoans() ([]models.Loan, error) {
+	if v := st.cache.Fetch("my_loans"); v != nil && !st.cache.IsOld("my_loans") {
+		return v.([]models.Loan), nil
 	}
 
 	uri := users + st.username + "/loans"
 
-	var raw map[string][]models.PurchasedLoan
+	var raw map[string][]models.Loan
 	err := st.doShaped("GET", uri, "", nil, map[string]string{
 		"token": st.token,
 	}, &raw)
@@ -302,6 +346,7 @@ func (st *SpaceTrader) TakeLoan(loanType string) (models.Account, error) {
 	}
 
 	st.cache.Store("account", raw["user"])
+	st.eventManager.Emit(events.Loan{}.New("PURCHASED", raw["user"]))
 	return raw["user"], nil
 }
 
@@ -391,6 +436,7 @@ func (st *SpaceTrader) BuyShip(location string, shipType string) (models.Account
 	}
 
 	st.cache.Store("account", raw["user"])
+	st.eventManager.Emit(events.ShipPurchased{}.New(raw["user"]))
 	return raw["user"], nil
 }
 
@@ -418,6 +464,7 @@ func (st *SpaceTrader) BuyGood(shipID string, good string, quantity int) (models
 		return models.ShipOrder{}, err
 	}
 
+	st.eventManager.Emit(events.ShipOrder{}.New("BUY", shipOrder))
 	return shipOrder, nil
 }
 
@@ -445,6 +492,7 @@ func (st *SpaceTrader) SellGood(shipID string, good string, quantity int) (model
 		return models.ShipOrder{}, err
 	}
 
+	st.eventManager.Emit(events.ShipOrder{}.New("SELL", shipOrder))
 	return shipOrder, nil
 }
 
@@ -489,6 +537,10 @@ func (st *SpaceTrader) CreateFlightPlan(shipID string, destination string) (mode
 		return models.FlightPlan{}, err
 	}
 
+	st.mu.Lock()
+	st.flightPlans[raw["flightPlan"].ID] = raw["flightPlan"]
+	st.mu.Unlock()
+	st.eventManager.Emit(events.FlightPlan{}.New("CREATED", raw["flightPlan"]))
 	return raw["flightPlan"], nil
 }
 
@@ -521,6 +573,7 @@ func (st *SpaceTrader) PayLoan(loanID string) (models.Account, error) {
 	}
 
 	st.cache.Store("account", raw["user"])
+	st.eventManager.Emit(events.Loan{}.New("PAID", raw["user"]))
 	return raw["user"], nil
 }
 
