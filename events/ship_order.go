@@ -5,6 +5,9 @@ import (
 	"time"
 )
 
+const T_SELL = "SELL"
+const T_BUY = "BUY"
+
 type ShipOrder struct {
 	name string
 	time time.Time
@@ -15,7 +18,7 @@ type ShipOrder struct {
 
 func (e ShipOrder) New(args ...interface{}) Event {
 	return &ShipOrder{
-		name:  "SHIP_PURCHASED",
+		name:  "SHIP_ORDER",
 		time:  time.Now(),
 		Type:  args[0].(string),
 		Order: args[1].(models.ShipOrder),

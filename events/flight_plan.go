@@ -5,6 +5,9 @@ import (
 	"time"
 )
 
+const T_CREATED = "CREATED"
+const T_ENDED = "ENDED"
+
 type FlightPlan struct {
 	name string
 	time time.Time

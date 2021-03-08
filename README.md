@@ -14,7 +14,8 @@ This project provides a golang wrapper for the api.
 Notice this package is in it's alpha stage and is subject to api changes.
 
 ## 🔧 Documentation
-View Go Docs [here](https://pkg.go.dev/github.com/HOWZ1T/space_trader).
+- [Event Reference](EVENTS.md)
+- [Go Docs](https://pkg.go.dev/github.com/HOWZ1T/space_trader)
 
 ## 💾 Models
 Most of the objects have been modelled and can be accessed through the model package.
@@ -45,3 +46,11 @@ This project is licensed under [GNU General Public License v3.0](LICENSE).
 - [ ] Unit Tests (Reach at least 80% coverage)
 - [x] Documentation
 - [x] Event System
+- [ ] Events:
+  - [ ] Low Fuel
+  - [ ] Out Of Fuel
+  - [ ] Low Cargo Space
+  - [ ] Cargo Full
+  - [ ] Low Credits
+  - [ ] Out Of Credits
+  - [ ] Loan Due

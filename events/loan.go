@@ -5,6 +5,9 @@ import (
 	"time"
 )
 
+const T_PURCHASED = "PURCHASED"
+const T_PAID = "PAID"
+
 type Loan struct {
 	name string
 	time time.Time
