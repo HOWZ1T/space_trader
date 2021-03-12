@@ -52,7 +52,7 @@ func (st *SpaceTrader) GetFlightPlan(flightPlanID string) (models.FlightPlan, er
 	return raw["flightPlan"], nil
 }
 
-// Retrieves all flight plans witin a system
+// Retrieves all flight plans within a system
 // Note you must have an active ship in that system
 func (st *SpaceTrader) GetAllFlightPlansWithinSystem(symbol string) ([]models.CommonFlightPlan, error) {
 	uri := systems + symbol + "/flight-plans/"

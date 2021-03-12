@@ -38,6 +38,7 @@ func teardown() {}
 
 func TestMain(m *testing.M) {
 	setup()
+	stTest.disallowUnknownFields = true
 	code := m.Run()
 	teardown()
 	os.Exit(code)
@@ -136,6 +137,7 @@ func TestAccount(t *testing.T) {
 func TestAccountError(t *testing.T) {
 	uid := uuid.New().String()
 	st := New(token, uid)
+	st.disallowUnknownFields = true
 	_, err := st.Account()
 	(*assert.T)(t).NotNil(err)
 
@@ -164,6 +166,7 @@ func TestTakeLoan(t *testing.T) {
 	(*assert.T)(t).Nil(err)
 
 	st := New(token, username)
+	st.disallowUnknownFields = true
 	acc, err := st.TakeLoan("startup")
 
 	(*assert.T)(t).Nil(err)
@@ -211,6 +214,7 @@ func TestBuyShipNoFunds(t *testing.T) {
 	(*assert.T)(t).Nil(err)
 
 	st := New(token, username)
+	st.disallowUnknownFields = true
 	_, err = st.BuyShip("OE-PM-TR", "JW-MK-I")
 
 	(*assert.T)(t).NotNil(err)
@@ -219,6 +223,7 @@ func TestBuyShipNoFunds(t *testing.T) {
 
 func TestBuyShipWithFunds(t *testing.T) {
 	st := New("", "")
+	st.disallowUnknownFields = true
 	acc, err := createUserAndTakeLoanAndBuyShip(st)
 	(*assert.T)(t).Nil(err)
 
@@ -248,6 +253,7 @@ func TestBuyShipWithFunds(t *testing.T) {
 
 func TestBuyGoods(t *testing.T) {
 	st := New("", "")
+	st.disallowUnknownFields = true
 	acc, err := createUserAndTakeLoanAndBuyShip(st)
 	(*assert.T)(t).Nil(err)
 
@@ -281,6 +287,7 @@ func TestBuyGoods(t *testing.T) {
 
 func TestSellGoods(t *testing.T) {
 	st := New("", "")
+	st.disallowUnknownFields = true
 	acc, err := createUserAndTakeLoanAndBuyShip(st)
 	(*assert.T)(t).Nil(err)
 
@@ -327,6 +334,7 @@ func TestSearchSystem(t *testing.T) {
 
 func TestFlightPlan(t *testing.T) {
 	st := New("", "")
+	st.disallowUnknownFields = true
 	acc, err := createUserAndTakeLoanAndBuyShip(st)
 	(*assert.T)(t).Nil(err)
 
@@ -384,6 +392,7 @@ func TestFlightPlan(t *testing.T) {
 
 func TestPayLoan(t *testing.T) {
 	st := New("", "")
+	st.disallowUnknownFields = true
 	acc, err := createUserAndTakeLoanAndBuyShip(st)
 	(*assert.T)(t).Nil(err)
 
@@ -409,6 +418,7 @@ func TestGetLocationsInSystem(t *testing.T) {
 
 func TestGetMarket(t *testing.T) {
 	st := New("", "")
+	st.disallowUnknownFields = true
 	acc, err := createUserAndTakeLoanAndBuyShip(st)
 	(*assert.T)(t).Nil(err)
 
@@ -431,6 +441,7 @@ func Test_GetSystems(t *testing.T) {
 
 func Test_SwitchUser(t *testing.T) {
 	st := New("a", "b")
+	st.disallowUnknownFields = true
 	(*assert.T)(t).Equals(st.token, "a")
 	(*assert.T)(t).Equals(st.username, "b")
 

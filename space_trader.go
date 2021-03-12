@@ -56,6 +56,8 @@ type SpaceTrader struct {
 	eventManager events.EventManager
 
 	flightPlans map[string]models.FlightPlan
+
+	disallowUnknownFields bool
 }
 
 // Creates a new SpaceTrader instance.
@@ -68,9 +70,10 @@ func New(token string, username string) *SpaceTrader {
 			Transport: http.DefaultTransport,
 			Timeout:   60 * time.Second,
 		},
-		cache:        cache.New(time.Minute * 10),
-		eventManager: events.NewManager(),
-		flightPlans:  make(map[string]models.FlightPlan),
+		cache:                 cache.New(time.Minute * 10),
+		eventManager:          events.NewManager(),
+		flightPlans:           make(map[string]models.FlightPlan),
+		disallowUnknownFields: false,
 	}
 	go st.tick()
 	return &st
@@ -171,7 +174,9 @@ func (st *SpaceTrader) doRequestShaped(req *http.Request, shape interface{}) err
 	}
 
 	decoder := json.NewDecoder(strings.NewReader(string(body)))
-	decoder.DisallowUnknownFields()
+	if st.disallowUnknownFields {
+		decoder.DisallowUnknownFields()
+	}
 	err = decoder.Decode(shape)
 
 	if err != nil {
