@@ -150,11 +150,6 @@ func (st *SpaceTrader) doRequestShaped(req *http.Request, shape interface{}) err
 		return err
 	}
 
-	err = json.Unmarshal(body, shape)
-	if err != nil {
-		return err
-	}
-
 	// try check for json error returned
 	var e errs.ApiError
 	err1 := json.Unmarshal(body, &e)
@@ -173,6 +168,14 @@ func (st *SpaceTrader) doRequestShaped(req *http.Request, shape interface{}) err
 				return &e
 			}
 		}
+	}
+
+	decoder := json.NewDecoder(strings.NewReader(string(body)))
+	decoder.DisallowUnknownFields()
+	err = decoder.Decode(shape)
+
+	if err != nil {
+		return err
 	}
 
 	return nil

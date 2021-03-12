@@ -12,4 +12,6 @@ type FlightPlan struct {
 	ShipID                 string    `json:"ship"`
 	TerminatedAt           time.Time `json:"terminatedAt"`
 	TimeRemainingInSeconds int       `json:"timeRemainingInSeconds"`
+	Departure              string    `json:"departure"`
+	Distance               int       `json:"distance"`
 }

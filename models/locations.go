@@ -8,11 +8,12 @@ type PurchaseLocation struct {
 
 // Models the Location object.
 type Location struct {
-	Name   string `json:"name"`
-	Symbol string `json:"symbol"`
-	Type   string `json:"type"`
-	X      int    `json:"x"`
-	Y      int    `json:"y"`
+	Name    string `json:"name"`
+	Symbol  string `json:"symbol"`
+	Type    string `json:"type"`
+	X       int    `json:"x"`
+	Y       int    `json:"y"`
+	Anomaly string `json:"anomaly"`
 }
 
 // Models a Location object that has a Market.

@@ -17,4 +17,6 @@ type Ship struct {
 	ID                string             `json:"id"`
 	Location          string             `json:"location"`
 	SpaceAvailable    int                `json:"spaceAvailable"`
+	X                 int                `json:"x"`
+	Y                 int                `json:"y"`
 }
