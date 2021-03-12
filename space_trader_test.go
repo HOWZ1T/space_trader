@@ -368,6 +368,18 @@ func TestFlightPlan(t *testing.T) {
 		(*assert.T)(t).Errorf("event is not of the proper type")
 		break
 	}
+
+	// Get all flight plans in system and confirm our plan is one of them
+	flightPlans, err := st.GetAllFlightPlansWithinSystem("OE")
+	(*assert.T)(t).Nil(err)
+	(*assert.T)(t).NotEquals(len(flightPlans), 0)
+	foundShipIDInPlans := false
+	for _, flightPlan := range flightPlans {
+		if flightPlan.ShipID == shipID {
+			foundShipIDInPlans = true
+		}
+	}
+	(*assert.T)(t).Equals(true, foundShipIDInPlans)
 }
 
 func TestPayLoan(t *testing.T) {

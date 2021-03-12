@@ -13,3 +13,14 @@ type FlightPlan struct {
 	TerminatedAt           time.Time `json:"terminatedAt"`
 	TimeRemainingInSeconds int       `json:"timeRemainingInSeconds"`
 }
+
+type CommonFlightPlan struct {
+	ArrivesAt              time.Time `json:"arrivesAt"`
+	CreatedAt              time.Time `json:"createdAt"`
+	From                   string    `json:"from"`
+	To                     string    `json:"to"`
+	Username               string    `json:"username"`
+	ID                     string    `json:"id"`
+	ShipType               string    `json:"shipType"`
+	ShipID                 string    `json:"shipId"`
+}
