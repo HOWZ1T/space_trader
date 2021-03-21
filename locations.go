@@ -1,6 +1,7 @@
 package space_trader
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/HOWZ1T/space_trader/models"
@@ -12,11 +13,12 @@ import (
 func (st *SpaceTrader) SearchSystem(system string, type_ string) ([]models.Location, error) {
 	uri := systems + system + "/locations"
 	urlParams := make(map[string]string)
-	urlParams["token"] = st.token
 	urlParams["type"] = type_
 
 	var raw map[string][]models.Location
-	err := st.doShaped("GET", uri, "", nil, urlParams, &raw)
+	err := st.doShaped("GET", uri, "", map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, urlParams, &raw)
 	if err != nil {
 		return nil, err
 	}
@@ -30,9 +32,9 @@ func (st *SpaceTrader) GetLocation(symbol string) (models.Location, error) {
 	uri := locations + symbol
 
 	var raw map[string]interface{}
-	err := st.doShaped("GET", uri, "", nil, map[string]string{
-		"token": st.token,
-	}, &raw)
+	err := st.doShaped("GET", uri, "", map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &raw)
 	if err != nil {
 		return models.Location{}, err
 	}
@@ -49,9 +51,9 @@ func (st *SpaceTrader) GetLocationsInSystem(symbol string) ([]models.Location, e
 	uri := systems + symbol + "/locations"
 
 	var raw map[string][]models.Location
-	err := st.doShaped("GET", uri, "", nil, map[string]string{
-		"token": st.token,
-	}, &raw)
+	err := st.doShaped("GET", uri, "", map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &raw)
 	if err != nil {
 		return nil, err
 	}
@@ -65,9 +67,9 @@ func (st *SpaceTrader) GetMarket(symbol string) (models.Market, error) {
 	uri := locations + symbol + "/marketplace"
 
 	var raw map[string]models.MarketLocation
-	err := st.doShaped("GET", uri, "", nil, map[string]string{
-		"token": st.token,
-	}, &raw)
+	err := st.doShaped("GET", uri, "", map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &raw)
 	if err != nil {
 		return models.Market{}, err
 	}
@@ -82,9 +84,9 @@ func (st *SpaceTrader) GetSystems() ([]models.System, error) {
 	}
 
 	var raw map[string][]models.System
-	err := st.doShaped("GET", systems, "", nil, map[string]string{
-		"token": st.token,
-	}, &raw)
+	err := st.doShaped("GET", systems, "", map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &raw)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,8 @@
 package space_trader
 
 import (
+	"fmt"
+
 	"github.com/HOWZ1T/space_trader/errs"
 	"github.com/HOWZ1T/space_trader/events"
 	"github.com/HOWZ1T/space_trader/models"
@@ -44,9 +46,9 @@ func (st *SpaceTrader) Account() (models.Account, error) {
 
 	uri := users + st.username
 	var raw map[string]models.Account
-	err := st.doShaped("GET", uri, "", nil, map[string]string{
-		"token": st.token,
-	}, &raw)
+	err := st.doShaped("GET", uri, "", map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &raw)
 	if err != nil {
 		return models.Account{}, err
 	}
@@ -64,9 +66,9 @@ func (st *SpaceTrader) MyLoans() ([]models.Loan, error) {
 	uri := users + st.username + "/loans"
 
 	var raw map[string][]models.Loan
-	err := st.doShaped("GET", uri, "", nil, map[string]string{
-		"token": st.token,
-	}, &raw)
+	err := st.doShaped("GET", uri, "", map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &raw)
 	if err != nil {
 		return nil, err
 	}
