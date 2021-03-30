@@ -142,7 +142,7 @@ func TestAccountError(t *testing.T) {
 	(*assert.T)(t).NotNil(err)
 
 	if e, ok := err.(*errs.ApiError); ok {
-		expected := fmt.Sprintf("[404] error - User %s does not exist!", uid)
+		expected := fmt.Sprintf("[40401] error - User \"%s\" does not exist. Does the route have the correct username for the token you are using?", uid)
 		got := e.Error()
 		(*assert.T)(t).Equals(expected, got)
 	}

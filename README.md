@@ -35,6 +35,7 @@ Contributors will be acknowledge in this readme.
 ## ❤️ Contributors
 - [HOWZ1T](https://github.com/HOWZ1T/) - Project Author & Maintainer
 - [Trescenzi](https://github.com/trescenzi) - Added Functionality & Fixed Documentation Typo
+- [njfox](https://github.com/njfox) - Various fixes & tweaks
 
 ## ⚖️ License
 This project is licensed under [GNU General Public License v3.0](LICENSE).
