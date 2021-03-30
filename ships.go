@@ -2,10 +2,12 @@ package space_trader
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
+
 	"github.com/HOWZ1T/space_trader/errs"
 	"github.com/HOWZ1T/space_trader/events"
 	"github.com/HOWZ1T/space_trader/models"
-	"strings"
 )
 
 // Retrieves the available ships.
@@ -42,7 +44,6 @@ func (st *SpaceTrader) AvailableShips(class string) ([]models.Ship, error) {
 	}
 
 	urlParams := make(map[string]string)
-	urlParams["token"] = st.token
 
 	if class != "" {
 		class = strings.Trim(class, "\r\n")
@@ -60,7 +61,9 @@ func (st *SpaceTrader) AvailableShips(class string) ([]models.Ship, error) {
 	}
 
 	var raw map[string][]models.Ship
-	err := st.doShaped("GET", ships, "", nil, urlParams, &raw)
+	err := st.doShaped("GET", ships, "", map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, urlParams, &raw)
 	if err != nil {
 		return nil, err
 	}
@@ -84,11 +87,10 @@ func (st *SpaceTrader) BuyShip(location string, shipType string) (models.Account
 
 	var raw map[string]models.Account
 	err = st.doShaped("POST", uri, string(byts), map[string]string{
-		"Content-Type": "application/json",
-		"Accept":       "application/json",
-	}, map[string]string{
-		"token": st.token,
-	}, &raw)
+		"Content-Type":  "application/json",
+		"Accept":        "application/json",
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &raw)
 	if err != nil {
 		return models.Account{}, err
 	}

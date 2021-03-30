@@ -2,9 +2,11 @@ package space_trader
 
 import (
 	"encoding/json"
+	"fmt"
+	"strconv"
+
 	"github.com/HOWZ1T/space_trader/events"
 	"github.com/HOWZ1T/space_trader/models"
-	"strconv"
 )
 
 // Buys the specified good at the specified quantity for the specified ship.
@@ -23,10 +25,9 @@ func (st *SpaceTrader) BuyGood(shipID string, good string, quantity int) (models
 
 	var shipOrder models.ShipOrder
 	err = st.doShaped("POST", uri, string(byts), map[string]string{
-		"Content-Type": "application/json",
-	}, map[string]string{
-		"token": st.token,
-	}, &shipOrder)
+		"Content-Type":  "application/json",
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &shipOrder)
 	if err != nil {
 		return models.ShipOrder{}, err
 	}
@@ -51,10 +52,9 @@ func (st *SpaceTrader) SellGood(shipID string, good string, quantity int) (model
 
 	var shipOrder models.ShipOrder
 	err = st.doShaped("POST", uri, string(byts), map[string]string{
-		"Content-Type": "application/json",
-	}, map[string]string{
-		"token": st.token,
-	}, &shipOrder)
+		"Content-Type":  "application/json",
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &shipOrder)
 	if err != nil {
 		return models.ShipOrder{}, err
 	}

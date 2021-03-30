@@ -2,6 +2,8 @@ package space_trader
 
 import (
 	"encoding/json"
+	"fmt"
+
 	"github.com/HOWZ1T/space_trader/events"
 	"github.com/HOWZ1T/space_trader/models"
 )
@@ -22,10 +24,9 @@ func (st *SpaceTrader) CreateFlightPlan(shipID string, destination string) (mode
 
 	var raw map[string]models.FlightPlan
 	err = st.doShaped("POST", uri, string(byts), map[string]string{
-		"Content-Type": "application/json",
-	}, map[string]string{
-		"token": st.token,
-	}, &raw)
+		"Content-Type":  "application/json",
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &raw)
 	if err != nil {
 		return models.FlightPlan{}, err
 	}
@@ -42,9 +43,9 @@ func (st *SpaceTrader) GetFlightPlan(flightPlanID string) (models.FlightPlan, er
 	uri := users + st.username + "/flight-plans/" + flightPlanID
 
 	var raw map[string]models.FlightPlan
-	err := st.doShaped("GET", uri, "", nil, map[string]string{
-		"token": st.token,
-	}, &raw)
+	err := st.doShaped("GET", uri, "", map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &raw)
 	if err != nil {
 		return models.FlightPlan{}, err
 	}
@@ -58,9 +59,9 @@ func (st *SpaceTrader) GetAllFlightPlansWithinSystem(symbol string) ([]models.Co
 	uri := systems + symbol + "/flight-plans/"
 
 	var raw map[string][]models.CommonFlightPlan
-	err := st.doShaped("GET", uri, "", nil, map[string]string{
-		"token": st.token,
-	}, &raw)
+	err := st.doShaped("GET", uri, "", map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &raw)
 	if err != nil {
 		return []models.CommonFlightPlan{}, err
 	}

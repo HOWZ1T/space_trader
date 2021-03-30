@@ -2,10 +2,12 @@ package space_trader
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
+
 	"github.com/HOWZ1T/space_trader/errs"
 	"github.com/HOWZ1T/space_trader/events"
 	"github.com/HOWZ1T/space_trader/models"
-	"strings"
 )
 
 // Retrieves the available loans.
@@ -15,9 +17,9 @@ func (st *SpaceTrader) AvailableLoans() ([]models.Loan, error) {
 	}
 
 	var raw map[string][]models.Loan
-	err := st.doShaped("GET", loans, "", nil, map[string]string{
-		"token": st.token,
-	}, &raw)
+	err := st.doShaped("GET", loans, "", map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &raw)
 	if err != nil {
 		return nil, err
 	}
@@ -50,10 +52,9 @@ func (st *SpaceTrader) TakeLoan(loanType string) (models.Account, error) {
 
 	var raw map[string]models.Account
 	err = st.doShaped("POST", uri, string(byts), map[string]string{
-		"Content-Type": "application/json",
-	}, map[string]string{
-		"token": st.token,
-	}, &raw)
+		"Content-Type":  "application/json",
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &raw)
 	if err != nil {
 		return models.Account{}, err
 	}
@@ -69,9 +70,9 @@ func (st *SpaceTrader) PayLoan(loanID string) (models.Account, error) {
 	uri := users + st.username + "/loans/" + loanID
 
 	var raw map[string]models.Account
-	err := st.doShaped("PUT", uri, "", nil, map[string]string{
-		"token": st.token,
-	}, &raw)
+	err := st.doShaped("PUT", uri, "", map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", st.token),
+	}, nil, &raw)
 	if err != nil {
 		return models.Account{}, err
 	}
