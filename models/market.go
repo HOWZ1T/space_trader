@@ -2,11 +2,10 @@ package models
 
 // models a sellable good.
 type Good struct {
-	Available        int      `json:"available"`
-	VolumePerUnit    int      `json:"volumePerUnit"`
-	PricePerUnit     Currency `json:"pricePerUnit"`
-	Symbol           string   `json:"symbol"`
-	QuantityAvailabe int      `json:"quantityAvailable"`
+	QuantityAvailable int      `json:"quantityAvailable"`
+	VolumePerUnit     int      `json:"volumePerUnit"`
+	PricePerUnit      Currency `json:"pricePerUnit"`
+	Symbol            string   `json:"symbol"`
 }
 
 // models a market.

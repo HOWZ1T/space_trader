@@ -1,8 +1,10 @@
 package space_trader
 
 import (
-	"github.com/HOWZ1T/space_trader/models"
 	"math"
+
+	"github.com/HOWZ1T/space_trader/models"
+	"github.com/mitchellh/mapstructure"
 )
 
 // Searches the system for the given type.
@@ -27,15 +29,18 @@ func (st *SpaceTrader) SearchSystem(system string, type_ string) ([]models.Locat
 func (st *SpaceTrader) GetLocation(symbol string) (models.Location, error) {
 	uri := locations + symbol
 
-	var raw map[string]models.Location
+	var raw map[string]interface{}
 	err := st.doShaped("GET", uri, "", nil, map[string]string{
 		"token": st.token,
 	}, &raw)
 	if err != nil {
 		return models.Location{}, err
 	}
+	var loc models.Location
+	mapstructure.Decode(raw["location"], &loc)
+	mapstructure.Decode(raw["dockedShips"], &loc.DockedShips)
 
-	return raw["planet"], nil
+	return loc, nil
 }
 
 // Get all locations in the specified system.
@@ -67,7 +72,7 @@ func (st *SpaceTrader) GetMarket(symbol string) (models.Market, error) {
 		return models.Market{}, err
 	}
 
-	return raw["planet"].Market, nil
+	return raw["location"].Market, nil
 }
 
 // Gets all the systems info.
