@@ -23,6 +23,9 @@ const (
 	// base endpoint
 	base = "https://api.spacetraders.io/"
 
+	// my endpoint
+	my = base + "my/"
+
 	// game endpoint
 	game = base + "game/"
 
